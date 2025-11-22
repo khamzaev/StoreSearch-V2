@@ -13,7 +13,7 @@ class SearchViewController: UIViewController {
     private let searchBar = UISearchBar()
     private let segmentedControl = UISegmentedControl(items: ["All", "Music", "Software", "E-Books"])
     private let tableView = UITableView()
-    private let search = Search()
+    private let viewModel = SearchViewModel()
     
     
     override func viewDidLoad() {
@@ -24,6 +24,30 @@ class SearchViewController: UIViewController {
         setupSegmentedControl()
         setupTableView()
         setupDismissKeyboardGesture()
+        viewModel.onStateChanged = { [weak self] state in
+            self?.updateUI(for: state)
+        }
+    }
+    
+    private func updateUI(for state: SearchViewModel.State) {
+        DispatchQueue.main.async {
+            switch state {
+            case .notSearchedYet:
+                self.tableView.reloadData()
+
+            case .loading:
+                self.tableView.reloadData()
+                self.animatedTableAppearance()
+
+            case .noResults:
+                self.tableView.reloadData()
+                self.animatedTableAppearance()
+
+            case .results:
+                self.tableView.reloadData()
+                self.animatedTableAppearance()
+            }
+        }
     }
     
     private func setupHeader() {
@@ -143,7 +167,7 @@ class SearchViewController: UIViewController {
         }
     }
     
-    private func currentCategory() -> Search.Category {
+    private func currentCategory() -> Category {
         switch segmentedControl.selectedSegmentIndex {
         case 1: return .music
         case 2: return .software
@@ -154,13 +178,7 @@ class SearchViewController: UIViewController {
     
     @objc private func segmentChanged() {
         guard let text = searchBar.text, !text.isEmpty else { return }
-
-        search.performSearch(for: text, category: currentCategory()) { [weak self] success in
-            guard let self = self else { return }
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-        }
+        viewModel.performSearch(text: text, category: currentCategory())
     }
     
     
@@ -170,7 +188,7 @@ class SearchViewController: UIViewController {
 // MARK: - UITableViewDataSource, UITableViewDelegate
 extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        switch search.state {
+        switch viewModel.state {
         case .notSearchedYet:
             return 0
         case .loading, .noResults:
@@ -184,7 +202,7 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
         
         tableView.contentInset = .zero
         
-        switch search.state {
+        switch viewModel.state {
         case .notSearchedYet:
             fatalError("Не должно вызвываться - таблица пустая")
         case .loading:
@@ -211,15 +229,16 @@ extension SearchViewController: UITableViewDataSource, UITableViewDelegate {
         
         tableView.deselectRow(at: indexPath, animated: true)
         
-        switch search.state {
+        switch viewModel.state {
         case .results(let list):
             let result = list[indexPath.row]
             
             let detailVC = DetailViewController()
+            detailVC.viewModel = DetailViewModel(item: result.item)
             detailVC.modalPresentationStyle = .overFullScreen
             detailVC.modalTransitionStyle = .crossDissolve
             
-            detailVC.configure(with: result.item)
+            detailVC.configure()
             
             present(detailVC, animated: true)
             
@@ -236,13 +255,6 @@ extension SearchViewController: UISearchBarDelegate {
         searchBar.resignFirstResponder()
         
         guard let text = searchBar.text, !text.isEmpty else { return }
-        
-        search.performSearch(for: text, category: currentCategory()) {[ weak self] success in
-            guard let self = self else { return }
-            if !success { print("Network error")}
-            DispatchQueue.main.async {
-                self.tableView.reloadData()
-            }
-        }
+        viewModel.performSearch(text: text, category: currentCategory())
     }
 }

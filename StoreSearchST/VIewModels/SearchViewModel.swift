@@ -1,21 +1,13 @@
 //
-//  Search.swift
+//  SearchViewModel.swift
 //  StoreSearchST
 //
-//  Created by khamzaev on 08.11.2025.
+//  Created by khamzaev on 22.11.2025.
 //
 
 import Foundation
 
-final class Search {
-    
-    enum Category {
-        case all
-        case music
-        case software
-        case ebook
-    }
-    
+final class SearchViewModel {
     enum State {
         case notSearchedYet
         case loading
@@ -23,19 +15,27 @@ final class Search {
         case results([SearchResult])
     }
     
-    private(set) var state: State = .notSearchedYet
+    private(set) var state: State = .notSearchedYet {
+        didSet {
+            onStateChanged?(state)
+        }
+    }
     
-    func performSearch(for text: String, category: Category, completion: @escaping (Bool) -> Void) {
+    var onStateChanged: ((State) -> Void)?
+    
+    func performSearch(text: String, category: Category) {
         state = .loading
         
-        iTunesAPI.search(term: text, entity: mapCategoryToEntity(category)) { [weak self] result in
+        let entity = mapCategoryToEntity(category)
+        
+        ITunesAPI.search(term: text, entity: entity) { [weak self] result in
             guard let self = self else { return }
             
             switch result {
             case .failure:
-                completion(false)
+                self.state = .noResults
             case .success(let data):
-                self.handleSearchResponse(data, completion: completion)
+                self.handleData(data)
             }
         }
     }
@@ -49,15 +49,9 @@ final class Search {
         }
     }
     
-    private func handleSearchResponse(_ data: Data, completion: @escaping (Bool) -> Void) {
+    private func handleData(_ data: Data) {
         do {
             let response = try JSONDecoder().decode(ITunesResponse.self, from: data)
-            if let first = response.results.first {
-                print("⚠️ JSON PRICE DEBUG:",
-                      "formattedPrice =", first.formattedPrice as Any,
-                      "trackPrice =", first.trackPrice as Any,
-                      "currency =", first.currency as Any)
-            }
             
             if response.results.isEmpty {
                 self.state = .noResults
@@ -72,12 +66,9 @@ final class Search {
                 }
                 self.state = .results(mapped)
             }
-            
-            completion(true)
         } catch {
             print("JSON ERROR:", error)
-            completion(false)
+            self.state = .noResults
         }
     }
 }
-

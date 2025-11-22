@@ -14,7 +14,7 @@ enum ITunesEntity: String {
     case ebook = "ebook"
 }
 
-struct iTunesAPI {
+struct ITunesAPI {
     static func search(term: String, entity: ITunesEntity, completion: @escaping (Result<Data, Error>) -> Void) {
         let base = "https://itunes.apple.com/search"
         var components = URLComponents(string: base)!
