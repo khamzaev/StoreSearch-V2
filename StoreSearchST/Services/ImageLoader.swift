@@ -7,11 +7,18 @@
 
 import UIKit
 
-final class ImageLoader {
+protocol ImageLoaderProtocol {
+    func loadImage(from urlString: String?, completion: @escaping (UIImage?) -> Void)
+}
+
+final class ImageLoader: ImageLoaderProtocol {
     static let shared = ImageLoader()
+    private let session: URLSession
     private let cache = NSCache<NSString, UIImage>()
 
-    private init() {}
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
 
     func loadImage(from urlString: String?, completion: @escaping (UIImage?) -> Void) {
         guard let urlString = urlString,
@@ -25,7 +32,7 @@ final class ImageLoader {
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        session.dataTask(with: url) { data, _, _ in
             guard let data = data,
                   let image = UIImage(data: data) else {
                 DispatchQueue.main.async { completion(nil) }

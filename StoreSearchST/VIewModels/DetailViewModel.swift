@@ -11,12 +11,18 @@ import AVFoundation
 final class DetailViewModel {
     
     private let item: ITunesItem
-    private var player: AVPlayer?
-    
+    private var player: PreviewPlayerProtocol?
+    private let playerBuilder: (URL) -> PreviewPlayerProtocol
     var onPreviewStateChanged: ((Bool) -> Void)?
     
-    init(item: ITunesItem) {
+    init(
+        item: ITunesItem,
+        playerBuilder: @escaping (URL) -> PreviewPlayerProtocol = { url in
+            PreviewAudioPlayer(url: url)
+        }
+    ) {
         self.item = item
+        self.playerBuilder = playerBuilder
     }
     
     var titleText: String {
@@ -58,9 +64,14 @@ final class DetailViewModel {
               let url = URL(string: urlString) else { return }
         
         if player == nil {
-            let playerItem = AVPlayerItem(url: url)
-            player = AVPlayer(playerItem: playerItem)
-            observePreviewEnd(for: playerItem)
+            let newPlayer = playerBuilder(url)
+
+            if let realPlayer = newPlayer as? PreviewAudioPlayer,
+               let item = realPlayer.currentItem {
+                observePreviewEnd(for: item)
+            }
+
+            player = newPlayer
         }
         
         if player?.timeControlStatus == .playing {

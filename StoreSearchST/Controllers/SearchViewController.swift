@@ -13,7 +13,7 @@ class SearchViewController: UIViewController {
     private let searchBar = UISearchBar()
     private let segmentedControl = UISegmentedControl(items: ["All", "Music", "Software", "E-Books"])
     private let tableView = UITableView()
-    private let viewModel = SearchViewModel()
+    private let viewModel = SearchViewModel(api: ITunesAPI())
     
     
     override func viewDidLoad() {

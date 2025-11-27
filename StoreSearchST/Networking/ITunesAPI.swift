@@ -14,8 +14,16 @@ enum ITunesEntity: String {
     case ebook = "ebook"
 }
 
-struct ITunesAPI {
-    static func search(term: String, entity: ITunesEntity, completion: @escaping (Result<Data, Error>) -> Void) {
+protocol ITunesAPIProtocol {
+    func search(
+        term: String,
+        entity: ITunesEntity,
+        completion: @escaping (Result<Data, Error>) -> Void
+    )
+}
+
+struct ITunesAPI: ITunesAPIProtocol {
+     func search(term: String, entity: ITunesEntity, completion: @escaping (Result<Data, Error>) -> Void) {
         let base = "https://itunes.apple.com/search"
         var components = URLComponents(string: base)!
         var queryItems: [URLQueryItem] = [
@@ -48,3 +56,6 @@ struct ITunesAPI {
         task.resume()
     }
 }
+
+// если больше зависимостей лучше через расширение
+//extension ITunesAPI: ITunesAPIProtocol {}

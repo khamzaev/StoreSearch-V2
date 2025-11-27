@@ -23,12 +23,18 @@ final class SearchViewModel {
     
     var onStateChanged: ((State) -> Void)?
     
+    private let api: ITunesAPIProtocol
+    
+    init(api: ITunesAPIProtocol) {
+        self.api = api
+    }
+    
     func performSearch(text: String, category: Category) {
         state = .loading
         
         let entity = mapCategoryToEntity(category)
         
-        ITunesAPI.search(term: text, entity: entity) { [weak self] result in
+        api.search(term: text, entity: entity) { [weak self] result in
             guard let self = self else { return }
             
             switch result {
